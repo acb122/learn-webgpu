@@ -2,16 +2,14 @@ import triangleVertWGSL from './shaders/triangle.vert.wgsl';
 import redFragWGSL from './shaders/triangle.frag.wgsl';
 
 const vertices = new Float32Array([
-  0.5, 0.5, 0.0,
-  .5, -0.5, 0.0,
-  -0.5, 0.5, 0.0,
-  .5, -0.5, 0.0,
-  -0.5, -0.5, 0.0,
-  -0.5, 0.5, 0.0
+  0.5,  0.5, 0.0, // top right
+  0.5, -0.5, 0.0, // bottom right
+  -0.5, -0.5, 0.0, // bottom let
+  -0.5,  0.5, 0.0  // top left
 ])
 
 
-const indices = new Uint32Array([
+const indices = new Uint16Array([
   0, 1, 3,
   1, 2, 3
 ])
@@ -45,7 +43,7 @@ async function main() {
 
   const indiciesbuffer = device.createBuffer({
     label: "indiciesbuffer",
-    size: vertices.byteLength,
+    size: indices.byteLength,
     usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
   })
 
@@ -103,9 +101,9 @@ async function main() {
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
   passEncoder.setVertexBuffer(0, verticesbuffer);
-  passEncoder.setIndexBuffer(indiciesbuffer, 'uint32');
+  passEncoder.setIndexBuffer(indiciesbuffer, 'uint16');
 
-  passEncoder.draw(6, 1, 0, 0);
+  passEncoder.drawIndexed(6);
   passEncoder.end();
 
   device.queue.submit([commandEncoder.finish()]);

@@ -8,13 +8,6 @@ const vertices = new Float32Array([
   -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0
 ])
 
-const texCoords = new Float32Array([
-  0.0, 0.0, // lower-let corner
-  1.0, 0.0, // lower-right corner
-  0.5, 1.0
-])
-
-
 const indices = new Uint32Array([
   0, 1, 3,
   1, 2, 3
@@ -22,7 +15,6 @@ const indices = new Uint32Array([
 
 async function main() {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-  // document.body.appendChild(canvas)
   const context = canvas.getContext('webgpu') as GPUCanvasContext;
 
   const devicePixelRatio = window.devicePixelRatio || 1;
@@ -80,7 +72,7 @@ async function main() {
       offset: 24,
       format: 'float32x2'
     }],
-    arrayStride: 4 * 8, // sizeof(float) * 3
+    arrayStride: 32, // sizeof(float) * 3
     stepMode: 'vertex'
   };
 
@@ -183,7 +175,7 @@ async function main() {
   passEncoder.setIndexBuffer(indiciesbuffer, 'uint32');
   passEncoder.setBindGroup(0, uniformBindGroup)
 
-  passEncoder.draw(3, 1, 0, 0);
+  passEncoder.drawIndexed(6);
   passEncoder.end();
   device.queue.submit([commandEncoder.finish()]);
   document.body.appendChild(canvas)
