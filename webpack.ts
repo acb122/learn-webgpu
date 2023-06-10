@@ -50,7 +50,9 @@ let config: webpack.Configuration = {
     plugins: [
         new CopyPlugin({
             patterns: [
-              { from: path.join(__dirname, 'src', pathToBase, 'index.html'), to: path.resolve(__dirname, outputPath) }
+              { from: path.join(__dirname, 'src', pathToBase, 'index.html'), to: path.resolve(__dirname, outputPath) },
+              { from: path.join(__dirname, 'resources'), to: path.resolve(__dirname, outputPath, 'assets') }
+
             ],
           }),
         new CleanWebpackPlugin(),

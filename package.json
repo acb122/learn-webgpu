@@ -7,7 +7,7 @@
     "start": "npm run build",
     "watch": "watch \"npm start\" src ",
     "dev": "http-server",
-    "build": "cross-env NODE_ENV=production FOLDER=1.6.6-hello-triangle ts-node webpack.ts"
+    "build": "cross-env NODE_ENV=production FOLDER=1.7.6-textures ts-node webpack.ts"
   },
   "keywords": [
     "webgpu",

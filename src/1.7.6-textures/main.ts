@@ -2,9 +2,16 @@ import triangleVertWGSL from './shaders/triangle.vert.wgsl';
 import redFragWGSL from './shaders/triangle.frag.wgsl';
 
 const vertices = new Float32Array([
-  0.5, -0.5, 0.0, 1.0, 0.0, 0.0, // bottom right
-  -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // bottom let
-  0.0,  0.5, 0.0, 0.0, 0.0, 1.0
+  0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
+  0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
+  -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom let
+  -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0
+])
+
+const texCoords = new Float32Array([
+  0.0, 0.0, // lower-let corner
+  1.0, 0.0, // lower-right corner
+  0.5, 1.0
 ])
 
 
@@ -15,6 +22,7 @@ const indices = new Uint32Array([
 
 async function main() {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+  // document.body.appendChild(canvas)
   const context = canvas.getContext('webgpu') as GPUCanvasContext;
 
   const devicePixelRatio = window.devicePixelRatio || 1;
@@ -66,11 +74,16 @@ async function main() {
       shaderLocation: 1, // [[location(0)]]
       offset: 12,
       format: 'float32x3'
+    },
+    {
+      shaderLocation: 2, // [[location(0)]]
+      offset: 24,
+      format: 'float32x2'
     }],
-    arrayStride: 4 * 6, // sizeof(float) * 3
+    arrayStride: 4 * 8, // sizeof(float) * 3
     stepMode: 'vertex'
   };
-  
+
   const pipeline = device.createRenderPipeline({
     layout: 'auto',
     vertex: {
@@ -78,7 +91,7 @@ async function main() {
         code: triangleVertWGSL,
       }),
       entryPoint: 'main',
-      buffers: [positionBufferDesc ]
+      buffers: [positionBufferDesc]
     },
     fragment: {
       module: device.createShaderModule({
@@ -96,13 +109,11 @@ async function main() {
     },
   });
 
-  const commandEncoder = device.createCommandEncoder();
-  const textureView = context.getCurrentTexture().createView();
 
   const renderPassDescriptor: GPURenderPassDescriptor = {
     colorAttachments: [
       {
-        view: textureView,
+        view: undefined,
         clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
         loadOp: 'clear',
         storeOp: 'store',
@@ -110,31 +121,78 @@ async function main() {
     ],
   };
 
-//   const uniformBindGroup = device.createBindGroup({
-//     layout: pipeline.getBindGroupLayout(0),
-//     entries: [
-//         {
-//             binding: 0,
-//             resource: {
-//                 buffer: uniformBuffer,
-//             },
-//         },
-//     ],
-// });
+  //   const uniformBindGroup = device.createBindGroup({
+  //     layout: pipeline.getBindGroupLayout(0),
+  //     entries: [
+  //         {
+  //             binding: 0,
+  //             resource: {
+  //                 buffer: uniformBuffer,
+  //             },
+  //         },
+  //     ],
+  // });
 
+  const response = await fetch('/assets/textures/container.jpg');
+    const imageBitmap = await createImageBitmap(await response.blob());
+    console.log(response, imageBitmap)
+
+    const texture = device.createTexture({
+      size: [imageBitmap.width, imageBitmap.height, 1],
+      format: 'rgba8unorm',
+      usage:
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    console.log(texture)
+    
+    device.queue.copyExternalImageToTexture(
+      { source: imageBitmap },
+      { texture: texture },
+      [imageBitmap.width, imageBitmap.height]
+    );
+
+  const sampler = device.createSampler({
+    magFilter: 'linear',
+    minFilter: 'linear',
+  });
+
+  const uniformBindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      {
+        binding: 0,
+        resource: sampler,
+
+      },
+      {
+        binding: 1,
+        resource: texture.createView(),
+      },
+    ],
+  });
+
+  renderPassDescriptor.colorAttachments[0].view = context
+      .getCurrentTexture()
+      .createView();
+  const commandEncoder = device.createCommandEncoder();
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
   passEncoder.setVertexBuffer(0, verticesbuffer);
   passEncoder.setIndexBuffer(indiciesbuffer, 'uint32');
-  // passEncoder.setBindGroup(0, uniformBindGroup)
+  passEncoder.setBindGroup(0, uniformBindGroup)
 
   passEncoder.draw(3, 1, 0, 0);
   passEncoder.end();
-
   device.queue.submit([commandEncoder.finish()]);
+  document.body.appendChild(canvas)
+  
+// await device.queue.onSubmittedWorkDone()
+  
 }
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   main()
 })
 
