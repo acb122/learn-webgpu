@@ -7,7 +7,7 @@
     "start": "npm run build",
     "watch": "watch \"npm start\" src ",
     "dev": "http-server",
-    "build": "cross-env NODE_ENV=production FOLDER=1.7.6-textures ts-node webpack.ts"
+    "build": "cross-env NODE_ENV=production FOLDER=1.8.17-transformations ts-node webpack.ts"
   },
   "keywords": [
     "webgpu",
@@ -29,6 +29,7 @@
     "clean-webpack-plugin": "^4.0.x",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.x",
+    "glm-js": "^0.0.6-c",
     "http-server": "^14.1.x",
     "ts-loader": "^9.4.x",
     "ts-node": "^10.9.x",
@@ -36,7 +37,6 @@
     "webpack": "^5.75.x"
   },
   "dependencies": {
-    "gl-matrix": "^3.4.3",
     "watch": "^1.0.2"
   }
 }
