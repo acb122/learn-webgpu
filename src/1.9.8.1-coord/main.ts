@@ -1,24 +1,46 @@
 import triangleVertWGSL from './shaders/triangle.vert.wgsl';
 import redFragWGSL from './shaders/triangle.frag.wgsl';
-// import { mat4, vec4 } from 'gl-matrix'
-// import { translate, multiply } from 'gl-matrix/mat4'
-// import { transcode } from 'buffer';
-// import * as THREE from 'three';
 import * as glm from 'glm-js'
-import { vec3 } from 'gl-matrix';
-import { lookup } from 'dns';
 
 const vertices = new Float32Array([
-  0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
-  0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
-  -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom let
-  -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0
+  -0.5, -0.5, -0.5, 0.0, 0.0,
+  0.5, -0.5, -0.5, 1.0, 0.0,
+  0.5, 0.5, -0.5, 1.0, 1.0,
+  0.5, 0.5, -0.5, 1.0, 1.0,
+  -0.5, 0.5, -0.5, 0.0, 1.0,
+-0.5, -0.5, -0.5, 0.0, 0.0,
+-0.5, -0.5, 0.5, 0.0, 0.0,
+0.5, -0.5, 0.5, 1.0, 0.0,
+0.5, 0.5, 0.5, 1.0, 1.0,
+0.5, 0.5, 0.5, 1.0, 1.0,
+-0.5, 0.5, 0.5, 0.0, 1.0,
+-0.5, -0.5, 0.5, 0.0, 0.0,
+-0.5, 0.5, 0.5, 1.0, 0.0,
+-0.5, 0.5, -0.5, 1.0, 1.0,
+-0.5, -0.5, -0.5, 0.0, 1.0,
+-0.5, -0.5, -0.5, 0.0, 1.0,
+-0.5, -0.5, 0.5, 0.0, 0.0,
+-0.5, 0.5, 0.5, 1.0, 0.0,
+0.5, 0.5, 0.5, 1.0, 0.0,
+0.5, 0.5, -0.5, 1.0, 1.0,
+0.5, -0.5, -0.5, 0.0, 1.0,
+0.5, -0.5, -0.5, 0.0, 1.0,
+0.5, -0.5, 0.5, 0.0, 0.0,
+0.5, 0.5, 0.5, 1.0, 0.0,
+-0.5, -0.5, -0.5, 0.0, 1.0,
+0.5, -0.5, -0.5, 1.0, 1.0,
+0.5, -0.5, 0.5, 1.0, 0.0,
+0.5, -0.5, 0.5, 1.0, 0.0,
+-0.5, -0.5, 0.5, 0.0, 0.0,
+-0.5, -0.5, -0.5, 0.0, 1.0,
+-0.5, 0.5, -0.5, 0.0, 1.0,
+0.5, 0.5, -0.5, 1.0, 1.0,
+0.5, 0.5, 0.5, 1.0, 0.0,
+0.5, 0.5, 0.5, 1.0, 0.0,
+-0.5, 0.5, 0.5, 0.0, 0.0,
+-0.5, 0.5, -0.5, 0.0, 1.0
 ])
 
-const indices = new Uint32Array([
-  0, 1, 3,
-  1, 2, 3
-])
 
 async function main() {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -55,14 +77,6 @@ async function main() {
 
   device.queue.writeBuffer(verticesbuffer, 0, vertices);
 
-  const indiciesbuffer = device.createBuffer({
-    label: "indiciesbuffer",
-    size: vertices.byteLength,
-    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-  })
-
-  device.queue.writeBuffer(indiciesbuffer, 0, indices);
-
   const positionBufferDesc: GPUVertexBufferLayout = {
     attributes: [{
       shaderLocation: 0, // [[location(0)]]
@@ -72,14 +86,9 @@ async function main() {
     {
       shaderLocation: 1, // [[location(0)]]
       offset: 12,
-      format: 'float32x3'
-    },
-    {
-      shaderLocation: 2, // [[location(0)]]
-      offset: 24,
       format: 'float32x2'
     }],
-    arrayStride: 32, // sizeof(float) * 3
+    arrayStride: 20, // sizeof(float) * 3
     stepMode: 'vertex'
   };
 
@@ -106,8 +115,20 @@ async function main() {
     primitive: {
       topology: 'triangle-list',
     },
+    depthStencil: {
+      depthWriteEnabled: true,
+      depthCompare: 'less',
+      format: 'depth24plus',
+    },
   });
 
+  console.log(canvas.width, canvas.height)
+
+  const depthTexture = device.createTexture({
+    size: [canvas.width, canvas.height],
+    format: 'depth24plus',
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+  });
 
   const renderPassDescriptor: GPURenderPassDescriptor = {
     colorAttachments: [
@@ -118,6 +139,14 @@ async function main() {
         storeOp: 'store',
       },
     ],
+    depthStencilAttachment: {
+      view: depthTexture.createView(),
+
+      depthClearValue: 1.0,
+      depthLoadOp: 'clear',
+      depthStoreOp: 'store',
+    },
+
   };
 
   //   const uniformBindGroup = device.createBindGroup({
@@ -160,25 +189,50 @@ async function main() {
     minFilter: 'linear',
   });
 
-  let rotate = 0
+  let rotate = 0.
   function loop(){
  rotate++
- rotate%=360
+ rotate%=360.
   
-  let vec = glm.vec4(1., 0, 0, 1)
-  let trans = glm.mat4(1)
-  trans = glm.translate(trans, glm.vec3(.5, -.5, 0))
-  trans = glm.rotate(trans, glm.radians(rotate), glm.vec3(0, 0, 1))
-  trans = glm.scale(trans, glm.vec3(0.5, 0.5, 0.5))
-  vec = glm.mul(trans, vec)
+ let model = glm.mat4(1.)
+ model = glm.rotate(model,glm.radians(rotate), glm.vec3(.5,1.,0.));
 
-  let transformationBuffer = device.createBuffer({
+ let view = glm.mat4(1.);
+ view = glm.translate(view, glm.vec3(0.,0.,-3.))
+
+ let projection = glm.perspective(glm.radians(45.), 800./600.,0.1,100.0)
+
+
+  // let vec = glm.vec4(1., 0, 0, 1)
+  // let trans = glm.mat4(1)
+  // trans = glm.translate(trans, glm.vec3(.5, -.5, 0))
+  // trans = glm.rotate(trans, glm.radians(rotate), glm.vec3(0, 0, 1))
+  // // trans = glm.scale(trans, glm.vec3(0.5, 0.5, 0.5))
+  // vec = glm.mul(trans, vec)
+
+  let modelBuffer = device.createBuffer({
     label: "Cell State A",
-    size: trans.elements.byteLength,
+    size: model.elements.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
 
-  device.queue.writeBuffer(transformationBuffer, 0, trans.elements);
+  device.queue.writeBuffer(modelBuffer, 0, model.elements);
+
+  let viewBuffer = device.createBuffer({
+    label: "Cell State A",
+    size: view.elements.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  })
+
+  device.queue.writeBuffer(viewBuffer, 0, view.elements);
+
+  let projectionBuffer = device.createBuffer({
+    label: "Cell State A",
+    size: projection.elements.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  })
+
+  device.queue.writeBuffer(projectionBuffer, 0, projection.elements);
 
 
   const uniformBindGroup = device.createBindGroup({
@@ -198,7 +252,16 @@ async function main() {
       },
       {
         binding: 3,
-        resource: { buffer: transformationBuffer }
+        resource: { buffer: modelBuffer }
+      },
+      {
+        binding: 4,
+        resource: { buffer: viewBuffer }
+      }
+      ,
+      {
+        binding: 5,
+        resource: { buffer: projectionBuffer }
       }
     ],
   });
@@ -210,10 +273,9 @@ async function main() {
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
   passEncoder.setVertexBuffer(0, verticesbuffer);
-  passEncoder.setIndexBuffer(indiciesbuffer, 'uint32');
   passEncoder.setBindGroup(0, uniformBindGroup)
 
-  passEncoder.drawIndexed(6);
+  passEncoder.draw(36,1,0,0);
   passEncoder.end();
   device.queue.submit([commandEncoder.finish()]);
   requestAnimationFrame(loop)

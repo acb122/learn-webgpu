@@ -162,23 +162,48 @@ async function main() {
 
   let rotate = 0
   function loop(){
- rotate++
- rotate%=360
+//  rotate++
+//  rotate%=360
   
-  let vec = glm.vec4(1., 0, 0, 1)
-  let trans = glm.mat4(1)
-  trans = glm.translate(trans, glm.vec3(.5, -.5, 0))
-  trans = glm.rotate(trans, glm.radians(rotate), glm.vec3(0, 0, 1))
-  trans = glm.scale(trans, glm.vec3(0.5, 0.5, 0.5))
-  vec = glm.mul(trans, vec)
+ let model = glm.mat4(1.)
+ model = glm.rotate(model,glm.radians(-55.), glm.vec3(1.,0.,0.));
 
-  let transformationBuffer = device.createBuffer({
+ let view = glm.mat4(1.);
+ view = glm.translate(view, glm.vec3(0.,0.,-3.))
+
+ let projection = glm.perspective(glm.radians(45.), 800./600.,0.1,10.0)
+
+
+  // let vec = glm.vec4(1., 0, 0, 1)
+  // let trans = glm.mat4(1)
+  // trans = glm.translate(trans, glm.vec3(.5, -.5, 0))
+  // trans = glm.rotate(trans, glm.radians(rotate), glm.vec3(0, 0, 1))
+  // // trans = glm.scale(trans, glm.vec3(0.5, 0.5, 0.5))
+  // vec = glm.mul(trans, vec)
+
+  let modelBuffer = device.createBuffer({
     label: "Cell State A",
-    size: trans.elements.byteLength,
+    size: model.elements.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
 
-  device.queue.writeBuffer(transformationBuffer, 0, trans.elements);
+  device.queue.writeBuffer(modelBuffer, 0, model.elements);
+
+  let viewBuffer = device.createBuffer({
+    label: "Cell State A",
+    size: view.elements.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  })
+
+  device.queue.writeBuffer(viewBuffer, 0, view.elements);
+
+  let projectionBuffer = device.createBuffer({
+    label: "Cell State A",
+    size: projection.elements.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  })
+
+  device.queue.writeBuffer(projectionBuffer, 0, projection.elements);
 
 
   const uniformBindGroup = device.createBindGroup({
@@ -198,7 +223,16 @@ async function main() {
       },
       {
         binding: 3,
-        resource: { buffer: transformationBuffer }
+        resource: { buffer: modelBuffer }
+      },
+      {
+        binding: 4,
+        resource: { buffer: viewBuffer }
+      }
+      ,
+      {
+        binding: 5,
+        resource: { buffer: projectionBuffer }
       }
     ],
   });
