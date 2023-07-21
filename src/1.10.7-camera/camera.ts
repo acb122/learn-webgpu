@@ -19,32 +19,43 @@ export class Camera {
       this.zoom += e.wheelDeltaY / 100 * -1
     })
 
+    document.addEventListener('mousemove', (e: any) => {
+      this.lastX = undefined;
+      this.lastY = undefined;
+    })
+
     canvas.addEventListener('mousemove', (e: any) => {
-      if (!this.lastX) {
+      e.stopPropagation()
+      if (e.buttons > 0) {
+        if (!this.lastX) {
+          this.lastX = e.x;
+          this.lastY = e.y;
+          return
+        }
+        let xoffset = e.x - this.lastX;
+        let yoffset = this.lastY - e.y; // reversed: y ranges bottom to top
         this.lastX = e.x;
         this.lastY = e.y;
-        return
+        let sensitivity = 0.15;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+        this.yaw += xoffset;
+        this.pitch += yoffset;
+        if (this.pitch > 89.0) {
+          this.pitch = 89.0;
+        }
+        if (this.pitch < -89.0) {
+          this.pitch = -89.0;
+        }
+        let direction = glm.vec3();
+        direction.x = Math.cos(glm.radians(this.yaw)) * Math.cos(glm.radians(this.pitch));
+        direction.y = Math.sin(glm.radians(this.pitch));
+        direction.z = Math.sin(glm.radians(this.yaw)) * Math.cos(glm.radians(this.pitch));
+        this.cameraFront = glm.normalize(direction);
+      } else {
+        this.lastX = undefined;
+        this.lastY = undefined;
       }
-      let xoffset = e.x - this.lastX;
-      let yoffset = this.lastY - e.y; // reversed: y ranges bottom to top
-      this.lastX = e.x;
-      this.lastY = e.y;
-      let sensitivity = 0.25;
-      xoffset *= sensitivity;
-      yoffset *= sensitivity;
-      this.yaw += xoffset;
-      this.pitch += yoffset;
-      if (this.pitch > 89.0) {
-        this.pitch = 89.0;
-      }
-      if (this.pitch < -89.0) {
-        this.pitch = -89.0;
-      }
-      let direction = glm.vec3();
-      direction.x = Math.cos(glm.radians(this.yaw)) * Math.cos(glm.radians(this.pitch));
-      direction.y = Math.sin(glm.radians(this.pitch));
-      direction.z = Math.sin(glm.radians(this.yaw)) * Math.cos(glm.radians(this.pitch));
-      this.cameraFront = glm.normalize(direction);
     })
 
 
